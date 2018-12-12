@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kouheiszk/ssim"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-	file, err := os.Open("pic.jpg")
+	file, err := os.Open("../../test/pic.jpg")
 	if err != nil {
 		log.Fatalf("Could Not Open Pic -> %v", err)
 	}
@@ -21,7 +22,7 @@ func main() {
 		log.Fatalf("Could Not Decode Pic -> %v", err)
 	}
 
-	file, err = os.Open("pic2.jpg")
+	file, err = os.Open("../../test/pic2.jpg")
 	if err != nil {
 		log.Fatalf("Could Not Open Pic2 -> %v", err)
 	}
@@ -30,7 +31,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could Not Decode Pic2 -> %v", err)
 	}
-	index := ssim(img, img2)
+	index, err := ssim.SSIM(img, img2)
+	if err != nil {
+		log.Fatalf("Could Not Calculate SSIM -> %v", err)
+	}
+
 	fmt.Printf("Index is type of = %v\n", reflect.TypeOf(index))
 	fmt.Printf("Index Value = %f", index)
 }

@@ -1,14 +1,10 @@
-package main
+package ssim
 
 import (
-	"errors"
-	_ "fmt"
+	"fmt"
 	"image"
 	"image/color"
-	_ "image/jpeg"
-	"log"
 	"math"
-	_ "os"
 )
 
 // Default SSIM constants
@@ -16,20 +12,13 @@ var (
 	L  = 255.0
 	K1 = 0.01
 	K2 = 0.03
-	C1 = math.Pow((K1 * L), 2.0)
-	C2 = math.Pow((K2 * L), 2.0)
+	C1 = math.Pow(K1*L, 2.0)
+	C2 = math.Pow(K2*L, 2.0)
 )
-
-func handleErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 func dimensions(img image.Image) (width, height int) {
 	bounds := img.Bounds()
-	width, height = bounds.Max.X, bounds.Max.Y
-	return
+	return bounds.Dx(), bounds.Dy()
 }
 
 func getPixelValue(c color.Color) float64 {
@@ -83,17 +72,16 @@ func stdDev(img image.Image) float64 {
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			pixel := getPixelValue(img.At(x, y))
-			sum += math.Pow((pixel - avg), 2.0)
+			sum += math.Pow(pixel-avg, 2.0)
 		}
 	}
 
 	return math.Sqrt(sum / n)
 }
 
-func covar(img1, img2 image.Image) (covar float64, err error) {
+func covar(img1, img2 image.Image) (float64, error) {
 	if !equalDim(img1, img2) {
-		err = errors.New("Images must have the same dimension")
-		return
+		return 0, fmt.Errorf("images must have the same dimension")
 	}
 
 	avg1 := mean(img1)
@@ -111,24 +99,25 @@ func covar(img1, img2 image.Image) (covar float64, err error) {
 		}
 	}
 
-	covar = sum / n
-	return
+	return sum / n, nil
 }
 
-func ssim(x, y image.Image) float64 {
-	//x = convertToGrayscale(x)
-	//y = convertToGrayscale(y)
-	avg_x := mean(x)
-	avg_y := mean(y)
+func SSIM(x, y image.Image) (float64, error) {
+	x = convertToGrayscale(x)
+	y = convertToGrayscale(y)
 
-	stdDev_x := stdDev(x)
-	stdDev_y := stdDev(y)
+	avgX := mean(x)
+	avgY := mean(y)
+
+	stdDevX := stdDev(x)
+	stdDevY := stdDev(y)
 
 	covar, err := covar(x, y)
-	handleErr(err)
+	if err != nil {
+		return 0, err
+	}
 
-	num := ((2.0 * avg_x * avg_y) + C1) * ((2.0 * covar) + C2)
-	denominator := (math.Pow(avg_x, 2.0) + math.Pow(avg_y, 2.0) + C1) *
-		(math.Pow(stdDev_x, 2.0) + math.Pow(stdDev_y, 2.0) + C2)
-	return num / denominator
+	num := ((2.0 * avgX * avgY) + C1) * ((2.0 * covar) + C2)
+	denominator := (math.Pow(avgX, 2.0) + math.Pow(avgY, 2.0) + C1) * (math.Pow(stdDevX, 2.0) + math.Pow(stdDevY, 2.0) + C2)
+	return num / denominator, nil
 }
